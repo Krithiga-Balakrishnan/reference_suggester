@@ -7,4 +7,5 @@ faiss-cpu
 pandas
 numpy
 torch
-
+python-dotenv  # if you're using it
+azure-storage-blob  # if needed
