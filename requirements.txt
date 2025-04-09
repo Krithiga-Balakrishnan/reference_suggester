@@ -1,11 +1,11 @@
-fastapi
-uvicorn
-gunicorn
-transformers
-sentence-transformers
-faiss-cpu
-pandas
-numpy
-torch
-python-dotenv  # if you're using it
-azure-storage-blob  # if needed
+fastapi==0.95.0
+uvicorn==0.20.0
+gunicorn==20.1.0
+transformers==4.30.0
+sentence-transformers==2.2.2
+faiss-cpu==1.7.3
+pandas==1.5.3
+numpy==1.23.5
+torch==2.0.1
+python-dotenv==1.0.0
+azure-storage-blob==12.14.0
