@@ -28,7 +28,7 @@ app.include_router(semantic_router, prefix="/semantic")
 # Root endpoint for quick health check
 @app.get("/")
 def root():
-    return {"message": "🚀 Welcome to the Citation & Semantic Search API"}
+    return {"message": "Welcome to the Citation & Semantic Search API"}
 
 # Optional: For local development, add a main guard
 if __name__ == "__main__":
