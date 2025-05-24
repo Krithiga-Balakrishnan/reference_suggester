@@ -104,24 +104,113 @@ def get_valid_field(val):
 #     generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
 #     return generated_citation
 
+# def generate_citation(paper_details):
+#     # — parse & format authors —
+#     authors = parse_authors(paper_details.get("authors", []))
+#     formatted_authors = ", ".join(format_author_name(a) for a in authors)
+
+#     # — basic fields with fallback —
+#     title   = paper_details.get("title", "Unknown Title")
+#     year    = paper_details.get("year",  "Unknown Year")
+#     journal = paper_details.get("journal", "Unknown Journal")
+#     location = get_valid_field(paper_details.get("Conference Location"))
+#     pages    = get_valid_field(paper_details.get("pages"))
+#     doi      = get_valid_field(paper_details.get("doi"))
+#     url      = get_valid_field(paper_details.get("url"))
+#     volume   = get_valid_field(paper_details.get("volume"))
+#     issue    = get_valid_field(paper_details.get("issue"))
+#     citation_type = paper_details.get("type", "").lower()  # 🟢 Get type from CSV or paper_details
+
+#     # — model input (optional, can be removed if unused) —
+#     if "conference" in citation_type:
+#         input_text = (
+#             f"Generate an IEEE citation for a conference paper titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Conference: {journal}, "
+#             f"Location: {location}, Pages: {pages}, DOI: {doi}, URL: {url}."
+#         )
+#     elif "journal" in citation_type:
+#         input_text = (
+#             f"Generate an IEEE citation for a journal article titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Journal: {journal}, "
+#             f"Volume: {volume}, Issue: {issue}, Pages: {pages}, DOI: {doi}, URL: {url}."
+#         )
+#     else:
+#         input_text = (
+#             f"Generate an IEEE citation for a research paper titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Publication: {journal}, "
+#             f"Location: {location}, Pages: {pages}, DOI: {doi}, URL: {url}."
+#         )
+
+#     # input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
+#     # with torch.no_grad():
+#     #     _ = citation_model.generate(
+#     #             input_ids,
+#     #             max_length=512,
+#     #             num_beams=8,
+#     #             repetition_penalty=2.0,
+#     #             early_stopping=True
+#     #     )
+
+#     # # — Build citation string manually (fallback formatting) —
+#     # citation_parts = [formatted_authors, f"\"{title},\""]
+
+#     # if "journal" in citation_type:
+#     #     citation_parts.append(journal)
+#     #     if volume: citation_parts.append(f"vol. {volume}")
+#     #     if issue: citation_parts.append(f"no. {issue}")
+#     #     if year:   citation_parts.append(str(year))
+#     #     if pages:  citation_parts.append(f"pp. {pages}")
+#     # elif "conference" in citation_type:
+#     #     citation_parts.append(journal)
+#     #     if location: citation_parts.append(location)
+#     #     if year:     citation_parts.append(str(year))
+#     #     if pages:    citation_parts.append(f"pp. {pages}")
+#     # else:
+#     #     citation_parts.append(journal)
+#     #     if year:   citation_parts.append(str(year))
+#     #     if pages:  citation_parts.append(f"pp. {pages}")
+
+#     # if doi: citation_parts.append(f"doi: {doi}")
+#     # if url: citation_parts.append(url)
+
+#     # citation = ", ".join(c for c in citation_parts if c) + "."
+#     # return citation
+#         # — Run model inference —
+#     input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
+#     with torch.no_grad():
+#         output_ids = citation_model.generate(
+#             input_ids,
+#             max_length=512,
+#             num_beams=8,
+#             repetition_penalty=2.0,
+#             early_stopping=True
+#         )
+
+#     # — Decode and return model output —
+#     generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+#     return generated_citation
+
+
 def generate_citation(paper_details):
+    import re
+
     # — parse & format authors —
     authors = parse_authors(paper_details.get("authors", []))
-    formatted_authors = ", ".join(format_author_name(a) for a in authors)
+    formatted_authors = format_author_list(authors)
 
     # — basic fields with fallback —
     title   = paper_details.get("title", "Unknown Title")
-    year    = paper_details.get("year",  "Unknown Year")
-    journal = paper_details.get("journal", "Unknown Journal")
+    year    = get_valid_field(paper_details.get("year"))
+    journal = get_valid_field(paper_details.get("journal"))
     location = get_valid_field(paper_details.get("Conference Location"))
     pages    = get_valid_field(paper_details.get("pages"))
     doi      = get_valid_field(paper_details.get("doi"))
     url      = get_valid_field(paper_details.get("url"))
     volume   = get_valid_field(paper_details.get("volume"))
     issue    = get_valid_field(paper_details.get("issue"))
-    citation_type = paper_details.get("type", "").lower()  # 🟢 Get type from CSV or paper_details
+    citation_type = paper_details.get("type", "").lower()
 
-    # — model input (optional, can be removed if unused) —
+    # — Compose input prompt —
     if "conference" in citation_type:
         input_text = (
             f"Generate an IEEE citation for a conference paper titled '{title}' with details: "
@@ -141,41 +230,7 @@ def generate_citation(paper_details):
             f"Location: {location}, Pages: {pages}, DOI: {doi}, URL: {url}."
         )
 
-    # input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
-    # with torch.no_grad():
-    #     _ = citation_model.generate(
-    #             input_ids,
-    #             max_length=512,
-    #             num_beams=8,
-    #             repetition_penalty=2.0,
-    #             early_stopping=True
-    #     )
-
-    # # — Build citation string manually (fallback formatting) —
-    # citation_parts = [formatted_authors, f"\"{title},\""]
-
-    # if "journal" in citation_type:
-    #     citation_parts.append(journal)
-    #     if volume: citation_parts.append(f"vol. {volume}")
-    #     if issue: citation_parts.append(f"no. {issue}")
-    #     if year:   citation_parts.append(str(year))
-    #     if pages:  citation_parts.append(f"pp. {pages}")
-    # elif "conference" in citation_type:
-    #     citation_parts.append(journal)
-    #     if location: citation_parts.append(location)
-    #     if year:     citation_parts.append(str(year))
-    #     if pages:    citation_parts.append(f"pp. {pages}")
-    # else:
-    #     citation_parts.append(journal)
-    #     if year:   citation_parts.append(str(year))
-    #     if pages:  citation_parts.append(f"pp. {pages}")
-
-    # if doi: citation_parts.append(f"doi: {doi}")
-    # if url: citation_parts.append(url)
-
-    # citation = ", ".join(c for c in citation_parts if c) + "."
-    # return citation
-        # — Run model inference —
+    # — Run model inference —
     input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
     with torch.no_grad():
         output_ids = citation_model.generate(
@@ -186,9 +241,39 @@ def generate_citation(paper_details):
             early_stopping=True
         )
 
-    # — Decode and return model output —
-    generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
-    return generated_citation
+    # — Decode output —
+    generated = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+
+    # — Simple validation: if model output is too short or suspiciously unformatted, fallback —
+    if len(generated.split()) < 4 or not any(char.isdigit() for char in generated):
+        # Manual fallback construction
+        parts = [formatted_authors, f"\"{title},\""]
+        if "journal" in citation_type:
+            parts.append(journal)
+            if volume: parts.append(f"vol. {volume}")
+            if issue: parts.append(f"no. {issue}")
+            if year:  parts.append(str(year))
+            if pages: parts.append(f"pp. {pages}")
+        elif "conference" in citation_type:
+            parts.append(journal)
+            if location: parts.append(location)
+            if year:     parts.append(str(year))
+            if pages:    parts.append(f"pp. {pages}")
+        else:
+            parts.append(journal)
+            if year:  parts.append(str(year))
+            if pages: parts.append(f"pp. {pages}")
+
+        if doi: parts.append(f"doi: {doi}")
+        if url: parts.append(url)
+
+        return ", ".join(p for p in parts if p) + "."
+
+    # — Post-process model output —
+    generated = re.sub(r'\bAvailable:\s*', '', generated)
+    generated = generated.replace("*", "")
+
+    return generated
 
 
 # === API Request Schemas === #
