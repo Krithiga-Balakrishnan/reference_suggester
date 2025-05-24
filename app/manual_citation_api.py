@@ -17,7 +17,8 @@ hf_token = os.getenv("HF_TOKEN", None)  # Ensure you set HF_TOKEN in your enviro
 # Load model and tokenizer
 citation_model_path = "krithigadb/fine-tuned-citation-flan-t5"
 # citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path)
-citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, token=hf_token)
+# citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, token=hf_token)
+citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, token=hf_token, use_fast=False)
 citation_model = AutoModelForSeq2SeqLM.from_pretrained(citation_model_path, token=hf_token).to(device)
 
 # citation_model = AutoModelForSeq2SeqLM.from_pretrained(citation_model_path).to(device)
