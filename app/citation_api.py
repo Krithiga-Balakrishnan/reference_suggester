@@ -194,23 +194,23 @@ def get_valid_field(val):
 def generate_citation(paper_details):
     import re
 
-    # — parse & format authors —
+    # — Parse and format authors —
     authors = parse_authors(paper_details.get("authors", []))
     formatted_authors = format_author_list(authors)
 
-    # — basic fields with fallback —
-    title   = paper_details.get("title", "Unknown Title")
-    year    = get_valid_field(paper_details.get("year"))
-    journal = get_valid_field(paper_details.get("journal"))
-    location = get_valid_field(paper_details.get("Conference Location"))
-    pages    = get_valid_field(paper_details.get("pages"))
-    doi      = get_valid_field(paper_details.get("doi"))
-    url      = get_valid_field(paper_details.get("url"))
-    volume   = get_valid_field(paper_details.get("volume"))
-    issue    = get_valid_field(paper_details.get("issue"))
-    citation_type = paper_details.get("type", "").lower()
+    # — Clean and validate fields —
+    title     = get_valid_field(paper_details.get("title", "Unknown Title"))
+    year      = get_valid_field(paper_details.get("year"))
+    journal   = get_valid_field(paper_details.get("journal"))
+    location  = get_valid_field(paper_details.get("Conference Location"))
+    pages     = get_valid_field(paper_details.get("pages"))
+    doi       = get_valid_field(paper_details.get("doi"))
+    url       = get_valid_field(paper_details.get("url"))
+    volume    = get_valid_field(paper_details.get("volume"))
+    issue     = get_valid_field(paper_details.get("issue"))
+    citation_type = get_valid_field(paper_details.get("type", "")).lower()
 
-    # — Compose input prompt —
+    # — Build prompt based on type —
     if "conference" in citation_type:
         input_text = (
             f"Generate an IEEE citation for a conference paper titled '{title}' with details: "
@@ -240,33 +240,29 @@ def generate_citation(paper_details):
             repetition_penalty=2.0,
             early_stopping=True
         )
-
-    # — Decode output —
     generated = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
 
-    # — Simple validation: if model output is too short or suspiciously unformatted, fallback —
+    # — Validate model output —
     if len(generated.split()) < 4 or not any(char.isdigit() for char in generated):
-        # Manual fallback construction
+        # Fallback manual citation
         parts = [formatted_authors, f"\"{title},\""]
         if "journal" in citation_type:
-            parts.append(journal)
+            if journal: parts.append(journal)
             if volume: parts.append(f"vol. {volume}")
             if issue: parts.append(f"no. {issue}")
             if year:  parts.append(str(year))
             if pages: parts.append(f"pp. {pages}")
         elif "conference" in citation_type:
-            parts.append(journal)
+            if journal: parts.append(journal)
             if location: parts.append(location)
             if year:     parts.append(str(year))
             if pages:    parts.append(f"pp. {pages}")
         else:
-            parts.append(journal)
-            if year:  parts.append(str(year))
-            if pages: parts.append(f"pp. {pages}")
-
+            if journal: parts.append(journal)
+            if year:    parts.append(str(year))
+            if pages:   parts.append(f"pp. {pages}")
         if doi: parts.append(f"doi: {doi}")
         if url: parts.append(url)
-
         return ", ".join(p for p in parts if p) + "."
 
     # — Post-process model output —
