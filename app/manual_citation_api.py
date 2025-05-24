@@ -6,6 +6,7 @@ import torch
 import pandas as pd
 import ast
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+import re
 
 # === Setup === #
 router = APIRouter()
