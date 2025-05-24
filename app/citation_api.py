@@ -18,8 +18,8 @@ hf_token = os.getenv("HF_TOKEN", None)  # Ensure you set HF_TOKEN in your enviro
 # Load model from local path
 citation_model_path = "krithigadb/fine-tuned-citation-flan-t5"
 # citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, token=hf_token)
-citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, token=hf_token, use_fast=False)
-citation_model = AutoModelForSeq2SeqLM.from_pretrained(citation_model_path, token=hf_token).to(device)
+citation_tokenizer = AutoTokenizer.from_pretrained(citation_model_path, use_fast=False)
+citation_model = AutoModelForSeq2SeqLM.from_pretrained(citation_model_path).to(device)
 
 # Load dataset
 df = pd.read_csv("./models/InteractiveSheet_2025-03-12_16_01_53 - Sheet1.csv")
