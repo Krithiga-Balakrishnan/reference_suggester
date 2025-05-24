@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import torch
 import pandas as pd
 import ast
+import re
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 # === Setup === #
