@@ -9,9 +9,3 @@ numpy
 torch
 python-dotenv
 azure-storage-blob
-
-
-# requirements.txt additions
-testing: pytest
-fastapi[all]
-httpx
