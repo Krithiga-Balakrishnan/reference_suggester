@@ -66,11 +66,22 @@ def format_author_list(authors):
         # commas between 1st and 2nd ... no comma before 'and' between last two
         return ", ".join(formatted[:-2]) + ", " + formatted[-2] + " and " + formatted[-1]
 
+# def get_valid_field(val):
+#     if val is None:
+#         return None
+#     s = str(val).strip()
+#     if s.lower() in {"nan", "n/a", "#n/a", ""}:
+#         return None
+#     return s
+
+
 def get_valid_field(val):
     if val is None:
         return None
     s = str(val).strip()
-    if s.lower() in {"nan", "n/a", "#n/a", ""}:
+    low = s.lower()
+    # drop empty, common placeholders, or anything starting with 'unknown'
+    if not s or low in {"nan", "n/a", "#n/a"} or low.startswith("unknown"):
         return None
     return s
 
@@ -104,76 +115,68 @@ def get_valid_field(val):
 #     generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
 #     return generated_citation
 
+
 def generate_citation(paper_details):
-    # — Get formatted fields —
+    # Parse and clean fields
     authors = parse_authors(paper_details.get("authors", []))
     formatted_authors = format_author_list(authors)
-    title     = paper_details.get("title", "Unknown Title")
-    year      = get_valid_field(paper_details.get("year"))
-    journal   = get_valid_field(paper_details.get("journal"))
-    location  = get_valid_field(paper_details.get("Conference Location"))
-    pages     = get_valid_field(paper_details.get("pages"))
-    doi       = get_valid_field(paper_details.get("doi"))
-    citation_type = paper_details.get("type", "").lower()
-    volume    = get_valid_field(paper_details.get("volume"))
-    issue     = get_valid_field(paper_details.get("issue"))
+
+    title = get_valid_field(paper_details.get("title"))
+    year = get_valid_field(paper_details.get("year"))
+    journal = get_valid_field(paper_details.get("journal"))
+    location = get_valid_field(paper_details.get("Conference Location"))
+    pages = get_valid_field(paper_details.get("pages"))
+    doi = get_valid_field(paper_details.get("doi"))
     url = get_valid_field(paper_details.get("url"))
+    volume = get_valid_field(paper_details.get("volume"))
+    issue = get_valid_field(paper_details.get("issue"))
+    citation_type = (get_valid_field(paper_details.get("type")) or "").lower()
 
+    # Build list of available detail strings
+    details = []
+    if formatted_authors:
+        details.append(f"Authors: {formatted_authors}")
+    if year:
+        details.append(f"Year: {year}")
 
-    # — Compose prompt based on citation type —
+    # Type-specific fields
     if "conference" in citation_type:
-        type_description = "conference paper"
-        input_text = (
-            f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
-            f"Authors: {formatted_authors}, Year: {year}, Conference: {journal}, "
-            f"Location: {location}, Pages: {pages}, DOI: {doi}, URL: {url}."
-        )
-        
+        if journal:
+            details.append(f"Conference: {journal}")
+        if location:
+            details.append(f"Location: {location}")
     elif "journal" in citation_type:
-        type_description = "journal article"
-        input_text = (
-            f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
-            f"Authors: {formatted_authors}, Year: {year}, Journal: {journal}, "
-            f"Volume: {volume}, Issue: {issue}, Pages: {pages}, DOI: {doi}, URL: {url}."
-        )
-       
+        if journal:
+            details.append(f"Journal: {journal}")
+        if volume:
+            details.append(f"Volume: {volume}")
+        if issue:
+            details.append(f"Issue: {issue}")
     else:
-        type_description = "research paper"
-        input_text = (
-            f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
-            f"Authors: {formatted_authors}, Year: {year}, Publication: {journal}, "
-            f"Location: {location}, Pages: {pages}, DOI: {doi}."
-        )
+        if journal:
+            details.append(f"Publication: {journal}")
 
-    # # — Generate from model —
-    # input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
-    # with torch.no_grad():
-    #     output_ids = citation_model.generate(
-    #         input_ids,
-    #         max_length=512,
-    #         num_beams=8,
-    #         repetition_penalty=2.0,
-    #         early_stopping=True
-    #     )
+    # Common optional fields
+    if pages:
+        details.append(f"Pages: {pages}")
+    if doi:
+        details.append(f"DOI: {doi}")
+    if url:
+        details.append(f"URL: {url}")
 
-    # generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+    # Build prompt
+    kind = "conference paper" if "conference" in citation_type else "journal article"
+    if title:
+        prompt = f"Generate an IEEE citation for a {kind} titled '{title}'"
+    else:
+        prompt = f"Generate an IEEE citation for a {kind}"
+    if details:
+        prompt += f" with details: {', '.join(details)}."
+    else:
+        prompt += "."
 
-    # # — Post-process output —
-    # generated_citation = re.sub(r'\bAvailable:\s*', '', generated_citation)
-    # generated_citation = generated_citation.replace("*", "")
-
-    # if "journal" in citation_type and not re.search(r'\bin\s+\b' + re.escape(journal), generated_citation):
-    #     generated_citation = re.sub(
-    #         r'("[^"]+", )([A-Z][^,]+,)',
-    #         lambda m: f'{m.group(1)}in {m.group(2)}',
-    #         generated_citation,
-    #         count=1
-    #     )
-
-    # return generated_citation
-
-    # Run Model
-    input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
+    # Model inference
+    input_ids = citation_tokenizer.encode(prompt, return_tensors="pt", truncation=True).to(device)
     with torch.no_grad():
         output_ids = citation_model.generate(
             input_ids,
@@ -182,22 +185,135 @@ def generate_citation(paper_details):
             repetition_penalty=2.0,
             early_stopping=True
         )
+    generated = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
 
-    generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+    # Fallback if output invalid
+    if len(generated.split()) < 4 or not any(ch.isdigit() for ch in generated):
+        parts = []
+        if formatted_authors:
+            parts.append(formatted_authors)
+        if title:
+            parts.append(f'"{title},"')
+        if "journal" in citation_type and journal:
+            parts.append(journal)
+            if volume:
+                parts.append(f"vol. {volume}")
+            if issue:
+                parts.append(f"no. {issue}")
+        if "conference" in citation_type and journal:
+            parts.append(journal)
+            if location:
+                parts.append(location)
+        if year:
+            parts.append(str(year))
+        if pages:
+            parts.append(f"pp. {pages}")
+        if doi:
+            parts.append(f"doi: {doi}")
+        if url:
+            parts.append(url)
+        return ", ".join(parts) + "."
 
-    # Post-processing cleanup
-    generated_citation = re.sub(r'\bAvailable:\s*', '', generated_citation)
-    generated_citation = generated_citation.replace("*", "")
+    # Clean up any stray placeholders
+    generated = re.sub(r'\bAvailable:\s*', '', generated)
+    generated = re.sub(r'\b(None|N/A|Unknown\s+\w+)\b,?\s*', '', generated)
 
-    if "journal" in citation_type and not re.search(r'\bin\s+\b' + re.escape(journal), generated_citation):
-        generated_citation = re.sub(
-            r'("[^"]+", )([A-Z][^,]+,)',
-            lambda m: f'{m.group(1)}in {m.group(2)}',
-            generated_citation,
-            count=1
-        )
+    return generated
 
-    return generated_citation
+# def generate_citation(paper_details):
+#     # — Get formatted fields —
+#     authors = parse_authors(paper_details.get("authors", []))
+#     formatted_authors = format_author_list(authors)
+#     title     = paper_details.get("title", "Unknown Title")
+#     year      = get_valid_field(paper_details.get("year"))
+#     journal   = get_valid_field(paper_details.get("journal"))
+#     location  = get_valid_field(paper_details.get("Conference Location"))
+#     pages     = get_valid_field(paper_details.get("pages"))
+#     doi       = get_valid_field(paper_details.get("doi"))
+#     citation_type = paper_details.get("type", "").lower()
+#     volume    = get_valid_field(paper_details.get("volume"))
+#     issue     = get_valid_field(paper_details.get("issue"))
+#     url = get_valid_field(paper_details.get("url"))
+
+
+#     # — Compose prompt based on citation type —
+#     if "conference" in citation_type:
+#         type_description = "conference paper"
+#         input_text = (
+#             f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Conference: {journal}, "
+#             f"Location: {location}, Pages: {pages}, DOI: {doi}, URL: {url}."
+#         )
+        
+#     elif "journal" in citation_type:
+#         type_description = "journal article"
+#         input_text = (
+#             f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Journal: {journal}, "
+#             f"Volume: {volume}, Issue: {issue}, Pages: {pages}, DOI: {doi}, URL: {url}."
+#         )
+       
+#     else:
+#         type_description = "research paper"
+#         input_text = (
+#             f"Generate an IEEE citation for a {type_description} titled '{title}' with details: "
+#             f"Authors: {formatted_authors}, Year: {year}, Publication: {journal}, "
+#             f"Location: {location}, Pages: {pages}, DOI: {doi}."
+#         )
+
+#     # # — Generate from model —
+#     # input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
+#     # with torch.no_grad():
+#     #     output_ids = citation_model.generate(
+#     #         input_ids,
+#     #         max_length=512,
+#     #         num_beams=8,
+#     #         repetition_penalty=2.0,
+#     #         early_stopping=True
+#     #     )
+
+#     # generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+
+#     # # — Post-process output —
+#     # generated_citation = re.sub(r'\bAvailable:\s*', '', generated_citation)
+#     # generated_citation = generated_citation.replace("*", "")
+
+#     # if "journal" in citation_type and not re.search(r'\bin\s+\b' + re.escape(journal), generated_citation):
+#     #     generated_citation = re.sub(
+#     #         r'("[^"]+", )([A-Z][^,]+,)',
+#     #         lambda m: f'{m.group(1)}in {m.group(2)}',
+#     #         generated_citation,
+#     #         count=1
+#     #     )
+
+#     # return generated_citation
+
+#     # Run Model
+#     input_ids = citation_tokenizer.encode(input_text, return_tensors="pt", truncation=True).to(device)
+#     with torch.no_grad():
+#         output_ids = citation_model.generate(
+#             input_ids,
+#             max_length=512,
+#             num_beams=8,
+#             repetition_penalty=2.0,
+#             early_stopping=True
+#         )
+
+#     generated_citation = citation_tokenizer.decode(output_ids[0], skip_special_tokens=True).strip()
+
+#     # Post-processing cleanup
+#     generated_citation = re.sub(r'\bAvailable:\s*', '', generated_citation)
+#     generated_citation = generated_citation.replace("*", "")
+
+#     if "journal" in citation_type and not re.search(r'\bin\s+\b' + re.escape(journal), generated_citation):
+#         generated_citation = re.sub(
+#             r'("[^"]+", )([A-Z][^,]+,)',
+#             lambda m: f'{m.group(1)}in {m.group(2)}',
+#             generated_citation,
+#             count=1
+#         )
+
+#     return generated_citation
 
 
 # === API Schema === #
@@ -218,22 +334,42 @@ class CitationRequest(BaseModel):
 
 # === API Endpoint === #
 @router.post("/generatecitation/")
+# async def generate_manual_citation(request: CitationRequest):
+#     paper_details = {
+#         "authors": request.authors or [],
+#         "title": request.title or "Unknown Title",
+#         "journal": request.journal or "Unknown Journal",
+#         "year": request.year or "Unknown Year",
+#         "Conference Location": request.location or "Unknown Location",
+#         "pages": request.pages or "N/A",
+#         "doi": request.doi or "N/A",
+#         "Conference Location": request.location or "Unknown Location",
+#         "type": request.type or "",
+#         "volume": request.volume,
+#         "issue": request.issue,
+#         "url": request.url
+
+#     }
+
+#     citation = generate_citation(paper_details)
+#     return {"citation": citation}
 async def generate_manual_citation(request: CitationRequest):
-    paper_details = {
+    # Collate request into details dict
+    raw = {
         "authors": request.authors or [],
-        "title": request.title or "Unknown Title",
-        "journal": request.journal or "Unknown Journal",
-        "year": request.year or "Unknown Year",
-        "Conference Location": request.location or "Unknown Location",
-        "pages": request.pages or "N/A",
-        "doi": request.doi or "N/A",
-        "Conference Location": request.location or "Unknown Location",
-        "type": request.type or "",
+        "title": request.title,
+        "journal": request.journal,
+        "year": request.year,
+        "Conference Location": request.location,
+        "pages": request.pages,
+        "doi": request.doi,
+        "type": request.type,
         "volume": request.volume,
         "issue": request.issue,
-        "url": request.url
-
+        "url": request.url,
     }
 
-    citation = generate_citation(paper_details)
+    # Pass through generate_citation which handles cleaning
+    citation = generate_citation(raw)
     return {"citation": citation}
+
