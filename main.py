@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 # Register API routes with appropriate prefixes
-app.include_router(citation_router, prefix="/citation")
+app.include_router(citation_router, prefix="/generate")
 app.include_router(manual_router, prefix="/manual")
 app.include_router(semantic_router, prefix="/semantic")
 

@@ -278,7 +278,7 @@ class MultiCitationRequest(BaseModel):
     selected_paper_ids: list[str]
 
 
-@router.post("/generate_citations/")
+@router.post("/citation/")
 async def generate_multiple_citations(request: MultiCitationRequest):
     citations = []
     for paper_id in request.selected_paper_ids:

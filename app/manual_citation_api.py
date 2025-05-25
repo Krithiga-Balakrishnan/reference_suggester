@@ -217,7 +217,7 @@ class CitationRequest(BaseModel):
 
 
 # === API Endpoint === #
-@router.post("/generate_manual_citation/")
+@router.post("/generatecitation/")
 async def generate_manual_citation(request: CitationRequest):
     paper_details = {
         "authors": request.authors or [],
