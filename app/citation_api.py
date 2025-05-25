@@ -389,71 +389,31 @@ class MultiCitationRequest(BaseModel):
 
 
 @router.post("/citation/")
-# async def generate_multiple_citations(request: MultiCitationRequest):
-#     citations = []
-#     for paper_id in request.selected_paper_ids:
-#         paper_row = df[df["paper_id"].astype(str).str.strip() == str(paper_id).strip()]
-#         if paper_row.empty:
-#             citations.append({"paper_id": paper_id, "citation": "Paper ID not found."})
-#             continue
-
-#         paper_row = paper_row.iloc[0]
-#         paper_details = {
-#             "authors": parse_authors(paper_row["authors"]),
-#             "title": paper_row["title"],
-#             "journal": paper_row["journal"],
-#             "year": paper_row["year"],
-#             "Conference Location": paper_row.get("Conference Location", "Unknown Location"),
-#             "pages": paper_row.get("pages", "N/A"),
-#             "doi": paper_row.get("doi", "N/A"),
-#             "url": paper_row.get("url", None),              # 🔺 Add this
-#             "volume": paper_row.get("volume", None),        # 🔺 Add this
-#             "issue": paper_row.get("issue", None),          # 🔺 Add this
-#             "type": paper_row.get("type", "").lower(),      # 🔺 Add this
-            
-#         }
-#         citation = generate_citation(paper_details)
-#         citations.append({"paper_id": paper_id, "citation": citation})
-
-#     return {"citations": citations}
 async def generate_multiple_citations(request: MultiCitationRequest):
     citations = []
-
     for paper_id in request.selected_paper_ids:
-        # find the matching row
-        row = df[df["paper_id"].astype(str).str.strip() == str(paper_id).strip()]
-        if row.empty:
+        paper_row = df[df["paper_id"].astype(str).str.strip() == str(paper_id).strip()]
+        if paper_row.empty:
             citations.append({"paper_id": paper_id, "citation": "Paper ID not found."})
             continue
 
-        paper = row.iloc[0]
-        # build a cleaned details dict, only including non-empty fields
-        details = {
-            "authors": parse_authors(paper["authors"]),
-            "title": get_valid_field(paper.get("title")),
-            "journal": get_valid_field(paper.get("journal")),
-            "year": get_valid_field(paper.get("year")),
-            # ensure 'type' is a string for downstream logic
-            "type": (get_valid_field(paper.get("type")) or "").lower(),
+        paper_row = paper_row.iloc[0]
+        paper_details = {
+            "authors": parse_authors(paper_row["authors"]),
+            "title": paper_row["title"],
+            "journal": paper_row["journal"],
+            "year": paper_row["year"],
+            "Conference Location": paper_row.get("Conference Location", "Unknown Location"),
+            "pages": paper_row.get("pages", "N/A"),
+            "doi": paper_row.get("doi", "N/A"),
+            "url": paper_row.get("url", None),              # 🔺 Add this
+            "volume": paper_row.get("volume", None),        # 🔺 Add this
+            "issue": paper_row.get("issue", None),          # 🔺 Add this
+            "type": paper_row.get("type", "").lower(),      # 🔺 Add this
+            
         }
-
-        # include optional fields only if they pass validation
-        optional_fields = [
-            ("Conference Location", "Conference Location"),
-            ("volume", "volume"),
-            ("issue", "issue"),
-            ("pages", "pages"),
-            ("doi", "doi"),
-            ("url", "url"),
-        ]
-
-        for src_key, dest_key in optional_fields:
-            raw = paper.get(src_key, None)
-            clean = get_valid_field(raw)
-            if clean:
-                details[dest_key] = clean
-
-        citation = generate_citation(details)
+        citation = generate_citation(paper_details)
         citations.append({"paper_id": paper_id, "citation": citation})
 
     return {"citations": citations}
+

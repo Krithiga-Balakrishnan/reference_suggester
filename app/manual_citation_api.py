@@ -334,42 +334,24 @@ class CitationRequest(BaseModel):
 
 # === API Endpoint === #
 @router.post("/generatecitation/")
-# async def generate_manual_citation(request: CitationRequest):
-#     paper_details = {
-#         "authors": request.authors or [],
-#         "title": request.title or "Unknown Title",
-#         "journal": request.journal or "Unknown Journal",
-#         "year": request.year or "Unknown Year",
-#         "Conference Location": request.location or "Unknown Location",
-#         "pages": request.pages or "N/A",
-#         "doi": request.doi or "N/A",
-#         "Conference Location": request.location or "Unknown Location",
-#         "type": request.type or "",
-#         "volume": request.volume,
-#         "issue": request.issue,
-#         "url": request.url
-
-#     }
-
-#     citation = generate_citation(paper_details)
-#     return {"citation": citation}
 async def generate_manual_citation(request: CitationRequest):
-    # Collate request into details dict
-    raw = {
+    paper_details = {
         "authors": request.authors or [],
-        "title": request.title,
-        "journal": request.journal,
-        "year": request.year,
-        "Conference Location": request.location,
-        "pages": request.pages,
-        "doi": request.doi,
-        "type": request.type,
+        "title": request.title or "Unknown Title",
+        "journal": request.journal or "Unknown Journal",
+        "year": request.year or "Unknown Year",
+        "Conference Location": request.location or "Unknown Location",
+        "pages": request.pages or "N/A",
+        "doi": request.doi or "N/A",
+        "Conference Location": request.location or "Unknown Location",
+        "type": request.type or "",
         "volume": request.volume,
         "issue": request.issue,
-        "url": request.url,
+        "url": request.url
+
     }
 
-    # Pass through generate_citation which handles cleaning
-    citation = generate_citation(raw)
+    citation = generate_citation(paper_details)
     return {"citation": citation}
+
 
