@@ -21,6 +21,9 @@ keyword_model_path = "krithigadb/suggestionKeywords_V2"
 sbert_model_path = "krithigadb/fine_tuned_sbert"
 csv_path = "./models/InteractiveSheet_2025-03-12_16_01_53 - Sheet1.csv"
 embedding_path = "./models/sbert_embeddings_latest_v1.pkl"
+# Load FAISS index from disk
+index_path = "./models/sbert_faiss.index"
+index = faiss.read_index(index_path)
 
 # Load models
 tokenizer = AutoTokenizer.from_pretrained(keyword_model_path, token=hf_token)
@@ -39,11 +42,11 @@ abstracts = data["abstracts"]
 titles = data["titles"]
 sbert_embeddings = np.array(data["embeddings"])
 
-# Normalize and build FAISS index
-faiss.normalize_L2(sbert_embeddings)
-dimension = sbert_embeddings.shape[1]
-index = faiss.IndexFlatIP(dimension)
-index.add(sbert_embeddings)
+# # Normalize and build FAISS index
+# faiss.normalize_L2(sbert_embeddings)
+# dimension = sbert_embeddings.shape[1]
+# index = faiss.IndexFlatIP(dimension)
+# index.add(sbert_embeddings)
 
 global_filtered_papers = {}
 
